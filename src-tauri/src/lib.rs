@@ -43,6 +43,7 @@ const TILE_LAYER_FLAG_HAS_COLLISION: u16 = 0x0001;
 const CONFIG_VALUE_STRING: u8 = 0;
 const CONFIG_VALUE_NUMBER: u8 = 1;
 const CONFIG_VALUE_BOOLEAN: u8 = 2;
+const EMBEDDED_PACK_MAX_BYTES: usize = 2_621_440;
 const ALARM_EVENT_COUNT: usize = 12;
 const PREVIEW_OUTPUT_EVENT: &str = "preview-output";
 const DEFAULT_NWGE_API_BASE_URL: &str = "https://nwge-api.bjarnos.dev";
@@ -2392,6 +2393,13 @@ fn export_with_embedded_pack_blocking(
     let run_id = output_run_id("embedded");
     ensure_parent_dir(&output_path)?;
     let pack_bytes = build_pack(&project)?;
+    if pack_bytes.len() > EMBEDDED_PACK_MAX_BYTES {
+        return Err(format!(
+            "Embedded compilation only accepts packs up to 2.5 MB ({} bytes). This project pack is {} bytes.",
+            EMBEDDED_PACK_MAX_BYTES,
+            pack_bytes.len()
+        ));
+    }
     let client = reqwest::blocking::Client::new();
     let mut form = reqwest::blocking::multipart::Form::new()
         .text("appName", project.name.trim().to_string())
