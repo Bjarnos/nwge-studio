@@ -1,0 +1,35 @@
+{
+  "name": "nwge-studio",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9",
+  "type": "module",
+  "scripts": {
+    "bundle:lua-ls": "node scripts/bundle-lua-ls.mjs",
+    "dev": "vite",
+    "dev:tauri": "pnpm bundle:lua-ls && vite",
+    "build": "tsc && vite build",
+    "build:tauri": "pnpm bundle:lua-ls && tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "lucide-react": "^0.577.0",
+    "marked": "^17.0.5",
+    "monaco-editor": "^0.52.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3"
+  }
+}

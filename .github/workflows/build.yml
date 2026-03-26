@@ -1,0 +1,93 @@
+# Warning: the retention period is only 90 days!
+name: Build
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LUALSE_VERSION: 3.17.1
+
+jobs:
+  build:
+    name: ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Linux
+            runner: ubuntu-24.04
+            artifact: nwge-studio-linux
+            bundle_dir: src-tauri/target/release/bundle
+          - name: macOS
+            runner: macos-latest
+            artifact: nwge-studio-macos
+            bundle_dir: src-tauri/target/release/bundle
+          - name: Windows
+            runner: windows-latest
+            artifact: nwge-studio-windows
+            bundle_dir: src-tauri/target/release/bundle
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libwebkit2gtk-4.1-0=2.44.0-2 \
+            libwebkit2gtk-4.1-dev=2.44.0-2 \
+            libjavascriptcoregtk-4.1-0=2.44.0-2 \
+            libjavascriptcoregtk-4.1-dev=2.44.0-2 \
+            gir1.2-javascriptcoregtk-4.1=2.44.0-2 \
+            gir1.2-webkit2-4.1=2.44.0-2
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Detect CPU count
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            echo "CPU_COUNT=$(nproc)" >> "$GITHUB_ENV"
+          elif [ "$RUNNER_OS" = "macOS" ]; then
+            echo "CPU_COUNT=$(sysctl -n hw.ncpu)" >> "$GITHUB_ENV"
+          else
+            echo "CPU_COUNT=$NUMBER_OF_PROCESSORS" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Build NWGE Studio
+        env:
+          CARGO_BUILD_JOBS: ${{ env.CPU_COUNT }}
+        run: pnpm tauri build -- --jobs "${{ env.CPU_COUNT }}"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.platform.artifact }}
+          path: ${{ matrix.platform.bundle_dir }}
